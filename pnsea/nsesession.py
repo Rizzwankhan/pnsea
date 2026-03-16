@@ -18,7 +18,10 @@ class NSESession(StealthSession):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.set_headers(custom_headers)
-        self.fetch_cookies(ANY_NSE_URL)
+        try:
+            self.fetch_cookies(ANY_NSE_URL)
+        except Exception:
+            pass  # session proceeds without cookies — stealthkit will retry on first request
 
     def getHeaders(self):
         return self.session.headers
