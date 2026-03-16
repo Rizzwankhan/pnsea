@@ -17,8 +17,10 @@ class EquityOptions:
         """Returns a list of available expiry dates for a given equity symbol."""
         # Using v3 contract info/expiry endpoint
         params = {"symbol": symbol}
-        response = self.session.get(NSEEndpoints.EQ_EXPIRY_DATES, params=params)
-        return response.json().get('expiryDates', [])
+        raw = self.session.get(NSEEndpoints.EQ_EXPIRY_DATES, params=params)
+        if raw is None or raw.status_code != 200:
+            return []
+        return raw.json().get('expiryDates', [])        
     
     """
     Fetches the option chain via v3 API with mandatory expiry handling.
