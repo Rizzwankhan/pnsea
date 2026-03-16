@@ -45,19 +45,25 @@ class EquityOptions:
         params = {"type": "Equity", "symbol": symbol, "expiry": expiry_date}
 
         # 3. Fetch Data
-        response = self.session.get(NSEEndpoints.EQ_OPTION_CHAIN, params=params).json()
+        raw = self.session.get(NSEEndpoints.EQ_OPTION_CHAIN, params=params)
+        if raw is None or raw.status_code != 200:
+            return pd.DataFrame(), [], 0
+        response = raw.json()
+        if not response:
+            return pd.DataFrame(), [], 0
         
         # 4. Extract Metadata from 'records'
         records = response.get('records', {})
         underlying_value = records.get('underlyingValue', 0)
         all_expiry_dates = records.get('expiryDates', [])
+        nse_timestamp = records.get('timestamp', '')
 
         # 5. Extract Strike Rows from 'filtered'
         filtered_block = response.get('filtered', {})
         raw_rows = filtered_block.get('data', [])
 
         if not raw_rows:
-            return pd.DataFrame(), all_expiry_dates, underlying_value
+            return pd.DataFrame(), all_expiry_dates, underlying_value, nse_timestamp
 
         # 6. Filter by Strike Price if requested
         if strike_price is not None:
@@ -80,5 +86,5 @@ class EquityOptions:
             ce_df.reset_index(drop=True),
             pe_df.reset_index(drop=True)
         ], axis=1)
-
-        return df_final, all_expiry_dates, underlying_value
+        
+        return df_final, all_expiry_dates, underlying_value, nse_timestamp
