@@ -31,20 +31,26 @@ class IndicesOptions:
 
         # 2. Call the v3 API
         url = f"{NSEEndpoints.INDICES_OPTION_CHAIN}?type=Indices&symbol={symbol}&expiry={expiry_date}"
-        response = self.session.get(url).json()
+        raw = self.session.get(url)
+        if raw is None or raw.status_code != 200:
+            return pd.DataFrame(), [], 0
+        response = raw.json()
+        if not response:
+            return pd.DataFrame(), [], 0        
         
         # 3. Path Extraction - EXACTLY as per your full JSON
         # Metadata is in 'records'
         records_meta = response.get('records', {})
         underlying_value = records_meta.get('underlyingValue', 0)
         all_expiry_dates = records_meta.get('expiryDates', [])
+        nse_timestamp = records_meta.get('timestamp', '')
 
         # Actual strike rows are in 'filtered' -> 'data'
         filtered_block = response.get('filtered', {})
         raw_rows = filtered_block.get('data', [])
 
         if not raw_rows:
-            return pd.DataFrame(), all_expiry_dates, underlying_value
+            return pd.DataFrame(), all_expiry_dates, underlying_value, nse_timestamp
 
         # 4. Filter by Strike Price if requested
         # strikePrice IS at the top level of each row in filtered['data']
@@ -70,4 +76,5 @@ class IndicesOptions:
         # df_final.to_csv("option_chain_debug.csv", index=False)  # Debugging line
 
 
-        return df_final, all_expiry_dates, underlying_value
+        return df_final, all_expiry_dates, underlying_value, nse_timestamp
+        
